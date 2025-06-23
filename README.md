@@ -123,7 +123,7 @@ To ensure full compatibility, run:
 sudo apt install gettext
 ```
 
-Without this step, some scripts may fail with
+Without this step, some scripts may failed
 ---
 # 🛠️ Installation
 
