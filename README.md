@@ -25,7 +25,45 @@ Accepted to <i style="color: red; display: inline;"><b>ECCV Workshop 2024 (Best 
 > <a href="https://yaomarkmu.github.io/">Yao Mu</a><sup>* †</sup>, <a href="https://tianxingchen.github.io">Tianxing Chen</a><sup>* </sup>, Shijia Peng<sup>*</sup>, Zanxin Chen<sup>*</sup>, Zeyu Gao, Zhiqian Lan, Yude Zou, Lunkai Lin, Zhiqiang Xie, <a href="http://luoping.me/">Ping Luo</a><sup>†</sup>.
 
 ---
+# Data Structure！
+```
+episode1.hdf5
+├── endpose                          (float64, shape: [147, 14])
+├── joint_action/
+│   ├── left_arm                    (float64, shape: [147, 6])
+│   ├── left_gripper               (float64, shape: [147])
+│   ├── right_arm                  (float64, shape: [147, 6])
+│   ├── right_gripper              (float64, shape: [147])
+│   └── vector                     (float64, shape: [147, 14])
+├── observation/
+│   ├── front_camera/
+│   │   ├── cam2world_gl          (float32, shape: [147, 4, 4])
+│   │   ├── depth                 (float64, shape: [147, 240, 320])
+│   │   ├── extrinsic_cv         (float32, shape: [147, 3, 4])
+│   │   ├── intrinsic_cv         (float32, shape: [147, 3, 3])
+│   │   └── rgb                   (|S17330, shape: [147])
+│   ├── head_camera/
+│   │   ├── cam2world_gl          (float32, shape: [147, 4, 4])
+│   │   ├── depth                 (float64, shape: [147, 240, 320])
+│   │   ├── extrinsic_cv         (float32, shape: [147, 3, 4])
+│   │   ├── intrinsic_cv         (float32, shape: [147, 3, 3])
+│   │   └── rgb                   (|S19188, shape: [147])
+│   ├── left_camera/
+│   │   ├── cam2world_gl          (float32, shape: [147, 4, 4])
+│   │   ├── depth                 (float64, shape: [147, 240, 320])
+│   │   ├── extrinsic_cv         (float32, shape: [147, 3, 4])
+│   │   ├── intrinsic_cv         (float32, shape: [147, 3, 3])
+│   │   └── rgb                   (|S17970, shape: [147])
+│   └── right_camera/
+│       ├── cam2world_gl          (float32, shape: [147, 4, 4])
+│       ├── depth                 (float64, shape: [147, 240, 320])
+│       ├── extrinsic_cv         (float32, shape: [147, 3, 4])
+│       ├── intrinsic_cv         (float32, shape: [147, 3, 3])
+│       └── rgb                   (|S5962, shape: [147])
+└── pointcloud                      (float32, shape: [147, 1024, 6])
 
+```
+---
 # ⚠️ Important Notes When Using the L40 Cluster
 
 ## 1. ✅ Vulkan Setup
