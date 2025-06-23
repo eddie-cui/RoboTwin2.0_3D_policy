@@ -43,7 +43,6 @@ episode1.hdf5
 ---
 # Data Path:
 `/data/sea_disk0/cuihz/code/RoboTwin2.0/RoboTwin/data`
-Certainly! Here's the English version of the description:
 
 ---
 
