@@ -41,6 +41,30 @@ episode1.hdf5
 
 ```
 ---
+# Data Path:
+`/data/sea_disk0/cuihz/code/RoboTwin2.0/RoboTwin/data`
+Certainly! Here's the English version of the description:
+
+---
+
+## Dataset Description: `demo_clean` vs `demo_randomized`
+
+This dataset includes two distinct environment settings designed to support robust perception and policy learning:
+
+### 1. `demo_clean`
+
+* The table and surrounding environment have a fixed white appearance
+* Lighting is consistent, stable, and well-suited for perception
+* No distracting or irrelevant objects are present in the scene
+* This subset is being prioritized for organization, and data has been processed up to the task: **`open_laptop`**
+
+### 2. `demo_randomized`
+
+* Table textures and environmental materials are randomized
+* Scenes may include **additional irrelevant objects** to increase clutter
+* Lighting conditions are **highly randomized**, with variations in direction, intensity, and possible extreme lighting scenarios
+
+---
 # ⚠️ Important Notes When Using the L40 Cluster
 
 ## 1. ✅ Vulkan Setup
