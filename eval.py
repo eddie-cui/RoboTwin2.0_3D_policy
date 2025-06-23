@@ -26,38 +26,38 @@ parent_directory = os.path.dirname(current_file_path)
 
 class EnvGrader:
     def __init__(self, usr_args_path, policy_name):
-        # 从usr_args获取基本参数
+        # Get basic parameters from usr_args
         with open(usr_args_path, "r", encoding="utf-8") as f:
             usr_args = yaml.load(f.read(), Loader=yaml.FullLoader)
         self.task_name = usr_args["task_name"]
         self.task_config = usr_args["task_config"]
 
-        # 加载任务配置
+        # Load task configuration
         with open(f"./task_config/{self.task_config}.yml", "r", encoding="utf-8") as f:
             self.args = yaml.load(f.read(), Loader=yaml.FullLoader)
         
-        # 添加基本参数到args
+        # Add basic parameters to args
         self.args['task_name'] = self.task_name
         self.args["task_config"] = self.task_config
         
-        # 设置机器人实体配置
+        # Set robot embodiment configuration
         embodiment_type = self.args.get("embodiment")
         embodiment_config_path = os.path.join(CONFIGS_PATH, "_embodiment_config.yml")
         
         with open(embodiment_config_path, "r", encoding="utf-8") as f:
             self._embodiment_types = yaml.load(f.read(), Loader=yaml.FullLoader)
             
-        # 获取相机配置
+        # Get camera configuration
         with open(CONFIGS_PATH + "_camera_config.yml", "r", encoding="utf-8") as f:
             self._camera_config = yaml.load(f.read(), Loader=yaml.FullLoader)
         
-        # 设置相机参数
+        # Set camera parameters
         head_camera_type = self.args["camera"]["head_camera_type"]
         self.args["head_camera_h"] = self._camera_config[head_camera_type]["h"]
         self.args["head_camera_w"] = self._camera_config[head_camera_type]["w"]
         self.camera_type = head_camera_type
         
-        # 设置机器人文件
+        # Set robot files
         if len(embodiment_type) == 1:
             self.args["left_robot_file"] = self._get_embodiment_file(embodiment_type[0])
             self.args["right_robot_file"] = self._get_embodiment_file(embodiment_type[0])
@@ -74,25 +74,25 @@ class EnvGrader:
         else:
             raise ValueError("embodiment items should be 1 or 3")
         
-        # 加载左右手臂配置
+        # Load left and right arm configurations
         self.args["left_embodiment_config"] = self._get_embodiment_config(self.args["left_robot_file"])
         self.args["right_embodiment_config"] = self._get_embodiment_config(self.args["right_robot_file"])
         self.embodiment_args = self.args["left_embodiment_config"]
         
-        # 创建环境
+        # Create environment
         self.env = self._class_decorator(self.task_name)        
         
-        # 初始化环境
+        # Initialize environment
         seed = usr_args.get("seed", 0)
         self.st_seed = 100000 * (1 + seed)
         
-        # 设置结果保存目录
+        # Set result save directory
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.save_dir = Path(f"eval_result/{self.task_name}/{policy_name}/{self.task_config}/{current_time}")
         self.save_dir.mkdir(parents=True, exist_ok=True)
         self.video_size = None
         
-        # 设置视频记录
+        # Set video recording
         if self.args.get("eval_video_log", False):
             self.video_save_dir = self.save_dir
             camera_config = self._get_camera_config(self.args["camera"]["head_camera_type"])
@@ -100,7 +100,7 @@ class EnvGrader:
             self.video_save_dir.mkdir(parents=True, exist_ok=True)
             self.args["eval_video_save_dir"] = self.video_save_dir
         
-        # 打印配置信息
+        # Print configuration information
         print("============= Config =============\n")
         print("\033[95mMessy Table:\033[0m " + str(self.args["domain_randomization"]["cluttered_table"]))
         print("\033[95mRandom Background:\033[0m " + str(self.args["domain_randomization"]["random_background"]))
@@ -118,10 +118,10 @@ class EnvGrader:
               str(self.args["camera"]["collect_wrist_camera"]))
         print("\033[94mEmbodiment Config:\033[0m " + self.embodiment_name)
         print("\n==================================")
-        # 保存手臂维度
+        # Save arm dimensions
         self.left_arm_dim = len(self.args["left_embodiment_config"]["arm_joints_name"][0])
         self.right_arm_dim = len(self.args["right_embodiment_config"]["arm_joints_name"][1]) 
-        # 初始化评估状态
+        # Initialize evaluation state
         self.expert_check = True
         self.env.suc = 0
         self.env.test_num = 0
@@ -134,13 +134,13 @@ class EnvGrader:
         
     def _class_decorator(self, task_name):
         """
-        动态导入并实例化特定任务的环境类
+        Dynamically import and instantiate environment class for specific task
         
         Args:
-            task_name (str): 任务名称
+            task_name (str): Task name
             
         Returns:
-            环境实例
+            Environment instance
         """
         envs_module = importlib.import_module(f"envs.{task_name}")
         try:
@@ -152,13 +152,13 @@ class EnvGrader:
     
     def _get_camera_config(self, camera_type):
         """
-        读取相机配置参数
+        Read camera configuration parameters
         
         Args:
-            camera_type (str): 相机类型名称
+            camera_type (str): Camera type name
             
         Returns:
-            dict: 相机配置参数
+            dict: Camera configuration parameters
         """
         camera_config_path = os.path.join(parent_directory, "../task_config/_camera_config.yml")
         
@@ -172,13 +172,13 @@ class EnvGrader:
     
     def _get_embodiment_config(self, robot_file):
         """
-        读取机器人实体配置
+        Read robot embodiment configuration
         
         Args:
-            robot_file (str): 机器人配置文件路径
+            robot_file (str): Robot configuration file path
             
         Returns:
-            dict: 机器人配置参数
+            dict: Robot configuration parameters
         """
         robot_config_file = os.path.join(robot_file, "config.yml")
         with open(robot_config_file, "r", encoding="utf-8") as f:
@@ -187,13 +187,13 @@ class EnvGrader:
     
     def _get_embodiment_file(self, embodiment_type):
         """
-        获取机器人配置文件路径
+        Get robot configuration file path
         
         Args:
-            embodiment_type (str): 机器人类型
+            embodiment_type (str): Robot type
             
         Returns:
-            str: 配置文件路径
+            str: Configuration file path
         """
         robot_file = self._embodiment_types[embodiment_type]["file_path"]
         if robot_file is None:
@@ -201,15 +201,15 @@ class EnvGrader:
         return robot_file
     def find_valid_scenes(self, test_num=100):
         """
-        专家验证阶段：寻找有效的场景供策略评估使用
+        Expert validation phase: Find valid scenes for policy evaluation
         
         Args:
-            test_num (int): 需要收集的有效场景数量
+            test_num (int): Number of valid scenes to collect
             
         Returns:
-            list: 有效场景的种子列表
+            list: List of valid scene seeds
         """
-        print("\n开始寻找有效场景...")
+        print("\nStarting to find valid scenes...")
         
         while self.succ_seed < test_num:
             render_freq = self.args["render_freq"]
@@ -241,7 +241,7 @@ class EnvGrader:
             if self.env.plan_success and self.env.check_success():
                 self.succ_seed += 1
                 self.suc_test_seed_list.append(self.now_seed)
-                print(f"找到有效场景: {self.succ_seed}/{test_num}, 种子: {self.now_seed}")
+                print(f"Found valid scene: {self.succ_seed}/{test_num}, seed: {self.now_seed}")
                 self.now_id += 1
                 self.args["render_freq"] = render_freq
                 self.env.setup_demo(now_ep_num=self.now_id-1, seed=self.now_seed, is_test=True, **self.args)
@@ -280,7 +280,7 @@ class EnvGrader:
                 self.succ = False
                 return
             else:
-                print(f"场景验证失败, 种子: {self.now_seed}")
+                print(f"Scene validation failed, seed: {self.now_seed}")
                 self.now_seed += 1
                 self.args["render_freq"] = render_freq
                 continue     
@@ -294,7 +294,7 @@ class EnvGrader:
             self.succ = True
             Ongoing = False
             self.env.suc += 1
-            print(f"成功完成任务: {self.env.suc}/{self.env.test_num}, 当前种子: {self.now_seed}")
+            print(f"Task completed successfully: {self.env.suc}/{self.env.test_num}, current seed: {self.now_seed}")
             self.env.close_env(clear_cache=((self.succ_seed + 1) % self.clear_cache_freq == 0))
             if self.env.render_freq:
                 self.env.viewer.close()
@@ -306,7 +306,7 @@ class EnvGrader:
         if self.env.take_action_cnt >= self.env.step_lim:
             self.succ = False
             Ongoing = False
-            print(f"任务失败: {self.env.suc}/{self.env.test_num}, 当前种子: {self.now_seed}")
+            print(f"Task failed: {self.env.suc}/{self.env.test_num}, current seed: {self.now_seed}")
             self.env.close_env(clear_cache=((self.succ_seed + 1) % self.clear_cache_freq == 0))
             if self.env.render_freq:
                 self.env.viewer.close()
@@ -317,17 +317,17 @@ class EnvGrader:
             return self.succ,self.observation,Ongoing
         return self.succ,self.observation,Ongoing
     def _save_results(self):
-        """保存评估结果到文件"""
+        """Save evaluation results to file"""
         file_path = os.path.join(self.save_dir, f"_result.txt")
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # 计算成功率
+        # Calculate success rate
         success_rates = [self.env.suc / self.env.test_num] if self.env.test_num > 0 else [0.0]
         
         with open(file_path, "w") as file:
             file.write(f"Timestamp: {current_time}\n\n")
             file.write(f"Instruction Type: {self.instruction_type}\n\n")
-            # 以相同格式保存成功率
+            # Save success rate in the same format
             file.write("\n".join(map(str, success_rates)))
         
         print(f"Data has been saved to {file_path}")
