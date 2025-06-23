@@ -25,20 +25,68 @@ Accepted to <i style="color: red; display: inline;"><b>ECCV Workshop 2024 (Best 
 > <a href="https://yaomarkmu.github.io/">Yao Mu</a><sup>* †</sup>, <a href="https://tianxingchen.github.io">Tianxing Chen</a><sup>* </sup>, Shijia Peng<sup>*</sup>, Zanxin Chen<sup>*</sup>, Zeyu Gao, Zhiqian Lan, Yude Zou, Lunkai Lin, Zhiqiang Xie, <a href="http://luoping.me/">Ping Luo</a><sup>†</sup>.
 
 ---
-# Important When you use L40 cluster！！！
-1. About Vulkan: Ensure that the command **vulkaninfo** can correctly print out four L40 GPUs. If not, please refer to (https://github.com/NVIDIA/nvidia-container-toolkit/issues/16)
-   Our icd file is:
-   ```
-   {
-    "file_format_version" : "1.0.0",
+
+# ⚠️ Important Notes When Using the L40 Cluster
+
+## 1. ✅ Vulkan Setup
+
+* Please verify that the command `vulkaninfo` can correctly list **all four L40 GPUs**.
+
+* If `vulkaninfo` fails to display the GPUs, refer to this GitHub issue for troubleshooting:
+  👉 [NVIDIA Container Toolkit Issue #16](https://github.com/NVIDIA/nvidia-container-toolkit/issues/16)
+
+* The Vulkan **ICD (Installable Client Driver)** configuration file should look like this:
+
+  ```json
+  {
+    "file_format_version": "1.0.0",
     "ICD": {
-        "library_path": "libGLX_nvidia.so.0",
-        "api_version" : "1.3.277"
-      }
+      "library_path": "libGLX_nvidia.so.0",
+      "api_version": "1.3.277"
     }
+  }
+  ```
+
+## 2. 🎥 Installing FFmpeg in Docker
+
+Docker images typically **do not include `ffmpeg`** by default. To enable video/audio processing features, follow these steps:
+
+### Step-by-Step:
+
+1. **Install `libvpx7` first**
+   Because our cluster uses the `amd64` CPU architecture, you must manually install `libvpx7` before installing `ffmpeg`.
+
+   A pre-downloaded `.deb` package is located at:
+
    ```
-2. Because docker doesn't have ffmpeg. So you should install ffmpeg first. But our cpu core is based on amd64, so you should install **libvpx7** first. I downloaded the deb package in **/data/sea_disk0/cuihz/code/libvpx7_1.12.0-1+deb12u4_amd64.deb**.
-3. Run **apt install gettext** first!.
+   /data/sea_disk0/cuihz/code/libvpx7_1.12.0-1+deb12u4_amd64.deb
+   ```
+
+   Install it with:
+
+   ```bash
+   sudo apt install /data/sea_disk0/cuihz/code/libvpx7_1.12.0-1+deb12u4_amd64.deb
+   ```
+
+2. **Then install FFmpeg**:
+
+   ```bash
+   sudo apt update
+   sudo apt install ffmpeg
+   ```
+
+## 3. 🔧 Required for Bash Script Compatibility: `gettext`
+
+Some of our bash scripts rely on commands such as `envsubst`, which are **not available in minimal Docker images** by default. These tools are provided by the `gettext` package.
+
+To ensure full compatibility, run:
+
+```bash
+sudo apt install gettext
+```
+
+Without this step, some scripts may fail with
+
 ---
 # 📚 Overview
 
