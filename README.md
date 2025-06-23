@@ -24,8 +24,22 @@ Accepted to <i style="color: red; display: inline;"><b>CVPR 2025 (Highlight)</b>
 Accepted to <i style="color: red; display: inline;"><b>ECCV Workshop 2024 (Best Paper Award)</b></i>: [PDF](https://arxiv.org/pdf/2409.02920) | [arXiv](https://arxiv.org/abs/2409.02920)<br>
 > <a href="https://yaomarkmu.github.io/">Yao Mu</a><sup>* †</sup>, <a href="https://tianxingchen.github.io">Tianxing Chen</a><sup>* </sup>, Shijia Peng<sup>*</sup>, Zanxin Chen<sup>*</sup>, Zeyu Gao, Zhiqian Lan, Yude Zou, Lunkai Lin, Zhiqiang Xie, <a href="http://luoping.me/">Ping Luo</a><sup>†</sup>.
 
-
-
+---
+# Important When you use L40 cluster！！！
+1. About Vulkan: Ensure that the command **vulkaninfo** can correctly print out four L40 GPUs. If not, please refer to (https://github.com/NVIDIA/nvidia-container-toolkit/issues/16)
+   Our icd file is:
+   ```
+   {
+    "file_format_version" : "1.0.0",
+    "ICD": {
+        "library_path": "libGLX_nvidia.so.0",
+        "api_version" : "1.3.277"
+      }
+    }
+   ```
+2. Because docker doesn't have ffmpeg. So you should install ffmpeg first. But our cpu core is based on amd64, so you should install **libvpx7** first. I downloaded the deb package in **/data/sea_disk0/cuihz/code/libvpx7_1.12.0-1+deb12u4_amd64.deb**.
+3. Run **apt install gettext** first!.
+---
 # 📚 Overview
 
 | Branch Name | Link |
