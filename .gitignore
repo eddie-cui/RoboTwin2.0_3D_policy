@@ -13,9 +13,7 @@ eval_video/
 eval_result/
 
 # Code Generation
-assets/*
-!assets/_download.py
-!assets/files
+assets/
 
 policy/weights/*
 
