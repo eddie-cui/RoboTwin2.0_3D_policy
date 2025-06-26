@@ -450,6 +450,14 @@ class Base_Task(gym.Env):
             rgba = self.cameras.get_rgba()
             for camera_name in rgba.keys():
                 pkl_dic["observation"][camera_name].update(rgba[camera_name])
+                #turn into numpy uint8
+                img_array = pkl_dic["observation"][camera_name]["rgb"]
+                if img_array.dtype != np.uint8:
+                    if img_array.max() <= 1.0:
+                        img_array = (img_array * 255).astype(np.uint8)
+                    else:
+                        img_array = img_array.astype(np.uint8)
+                pkl_dic["observation"][camera_name]["rgb"] = img_array
 
         if self.data_type.get("third_view", False):
             third_view_rgb = self.cameras.get_observer_rgba()
