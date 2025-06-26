@@ -1,58 +1,130 @@
-<h1 align="center">
-  <a href="https://robotwin-benchmark.github.io"><b>RoboTwin</b> Bimanual Robotic Manipulation Simulation Platform<br></a>
-  <small>Lastest Version: RoboTwin 2.0</small><br>
-</h1>
+# Todo List
+- [ ] fix(eval_policy): Fix the logic for destroying the video pipeline
 
-🤲 <a href="https://robotwin-platform.github.io/">Webpage</a> | <a href="https://robotwin-platform.github.io/doc/">Document</a> | <a href="https://robotwin-platform.github.io/doc/community/index.html">Community</a>
-<br>
+---
+# Data Structure！
+```
+episode1.hdf5
+├── endpose                          (float64, shape: [147, 14])
+├── joint_action/
+│   ├── left_arm                    (float64, shape: [147, 6])
+│   ├── left_gripper               (float64, shape: [147])
+│   ├── right_arm                  (float64, shape: [147, 6])
+│   ├── right_gripper              (float64, shape: [147])
+│   └── vector                     (float64, shape: [147, 14])
+├── observation/
+│   ├── front_camera/
+│   │   ├── cam2world_gl          (float32, shape: [147, 4, 4])
+│   │   ├── depth                 (float64, shape: [147, 240, 320])
+│   │   ├── extrinsic_cv         (float32, shape: [147, 3, 4])
+│   │   ├── intrinsic_cv         (float32, shape: [147, 3, 3])
+│   │   └── rgb                   (|S17330, shape: [147])
+│   ├── head_camera/
+│   │   ├── cam2world_gl          (float32, shape: [147, 4, 4])
+│   │   ├── depth                 (float64, shape: [147, 240, 320])
+│   │   ├── extrinsic_cv         (float32, shape: [147, 3, 4])
+│   │   ├── intrinsic_cv         (float32, shape: [147, 3, 3])
+│   │   └── rgb                   (|S19188, shape: [147])
+│   ├── left_camera/
+│   │   ├── cam2world_gl          (float32, shape: [147, 4, 4])
+│   │   ├── depth                 (float64, shape: [147, 240, 320])
+│   │   ├── extrinsic_cv         (float32, shape: [147, 3, 4])
+│   │   ├── intrinsic_cv         (float32, shape: [147, 3, 3])
+│   │   └── rgb                   (|S17970, shape: [147])
+│   └── right_camera/
+│       ├── cam2world_gl          (float32, shape: [147, 4, 4])
+│       ├── depth                 (float64, shape: [147, 240, 320])
+│       ├── extrinsic_cv         (float32, shape: [147, 3, 4])
+│       ├── intrinsic_cv         (float32, shape: [147, 3, 3])
+│       └── rgb                   (|S5962, shape: [147])
+└── pointcloud                      (float32, shape: [147, 1024, 6])
 
-https://private-user-images.githubusercontent.com/88101805/457745424-ce0aaab2-14cf-4902-acb6-13f8433e49a9.mp4
+```
+---
+# Data Path:
+`/data/sea_disk0/cuihz/code/RoboTwin2.0/RoboTwin/data`
 
-**[2.0 Version (lastest)]** RoboTwin 2.0: A Scalable Data Generator and Benchmark with Strong Domain Randomization for Robust Bimanual Robotic Manipulation<br>
-<i>Under Review 2025</i>: [PDF](https://robotwin-platform.github.io/paper.pdf) | [arXiv (Coming Soon)]()<br>
-> <a href="https://tianxingchen.github.io/">Tianxing Chen</a><sup>*</sup>, Zanxin Chen<sup>*</sup>, Baijun Chen<sup>*</sup>, Zijian Cai<sup>*</sup>, <a href="https://10-oasis-01.github.io">Yibin Liu</a><sup>*</sup>, <a href="https://kolakivy.github.io/">Qiwei Liang</a>, Zixuan Li, Xianliang Lin, <a href="https://geyiheng.github.io">Yiheng Ge</a>, Zhenyu Gu, Weiliang Deng, Yubin Guo, Tian Nian, Xuanbing Xie, <a href="https://www.linkedin.com/in/yusen-qin-5b23345b/">Qiangyu Chen</a>, Kailun Su, Tianling Xu, <a href="http://luoping.me/">Guodong Liu</a>, <a href="https://aaron617.github.io/">Mengkang Hu</a>, <a href="https://c7w.tech/about">Huan-ang Gao</a>, Kaixuan Wang, <a href="https://liang-zx.github.io/">Zhixuan Liang</a>, <a href="https://www.linkedin.com/in/yusen-qin-5b23345b/">Yusen Qin</a>, Xiaokang Yang, <a href="http://luoping.me/">Ping Luo</a><sup>†</sup>, <a href="https://yaomarkmu.github.io/">Yao Mu</a><sup>†</sup>
+---
 
+## Dataset Description: `demo_clean` vs `demo_randomized`
 
-**[RoboTwin Dual-Arm Collaboration Challenge@CVPR'25 MEIS Workshop]** RoboTwin Dual-Arm Collaboration Challenge Technical Report at CVPR 2025 MEIS Workshop<br>
-> Coming Soon.
+This dataset includes two distinct environment settings designed to support robust perception and policy learning:
 
-**[1.0 Version]** RoboTwin: Dual-Arm Robot Benchmark with Generative Digital Twins<br>
-Accepted to <i style="color: red; display: inline;"><b>CVPR 2025 (Highlight)</b></i>: [PDF](https://arxiv.org/pdf/2504.13059) | [arXiv](https://arxiv.org/abs/2504.13059)<br>
-> <a href="https://yaomarkmu.github.io/">Yao Mu</a><sup>* †</sup>, <a href="https://tianxingchen.github.io">Tianxing Chen</a><sup>* </sup>, Zanxin Chen<sup>* </sup>, <a href="https://shijiapeng03.github.io">Shijia Peng</a><sup>* </sup>, Zhiqian Lan, Zeyu Gao, Zhixuan Liang, Qiaojun Yu, Yude Zou, Mingkun Xu, Lunkai Lin, Zhiqiang Xie, Mingyu Ding, <a href="http://luoping.me/">Ping Luo</a><sup>†</sup>.
+### 1. `demo_clean`
 
-**[Early Version]** RoboTwin: Dual-Arm Robot Benchmark with Generative Digital Twins (early version)<br>
-Accepted to <i style="color: red; display: inline;"><b>ECCV Workshop 2024 (Best Paper Award)</b></i>: [PDF](https://arxiv.org/pdf/2409.02920) | [arXiv](https://arxiv.org/abs/2409.02920)<br>
-> <a href="https://yaomarkmu.github.io/">Yao Mu</a><sup>* †</sup>, <a href="https://tianxingchen.github.io">Tianxing Chen</a><sup>* </sup>, Shijia Peng<sup>*</sup>, Zanxin Chen<sup>*</sup>, Zeyu Gao, Zhiqian Lan, Yude Zou, Lunkai Lin, Zhiqiang Xie, <a href="http://luoping.me/">Ping Luo</a><sup>†</sup>.
+* The table and surrounding environment have a fixed white appearance
+* Lighting is consistent, stable, and well-suited for perception
+* No distracting or irrelevant objects are present in the scene
+* This subset is being prioritized for organization, and data has been processed up to the task: **`open_laptop`**
 
+### 2. `demo_randomized`
 
+* Table textures and environmental materials are randomized
+* Scenes may include **additional irrelevant objects** to increase clutter
+* Lighting conditions are **highly randomized**, with variations in direction, intensity, and possible extreme lighting scenarios
 
-# 📚 Overview
+---
+# ⚠️ Important Notes When Using the L40 Cluster
 
-| Branch Name | Link |
-|-------------|------|
-| 2.0 Version Branch | [main](https://github.com/RoboTwin-Platform/RoboTwin/tree/main) (latest) |
-| 1.0 Version Branch | [1.0 Version](https://github.com/RoboTwin-Platform/RoboTwin/tree/main) |
-| 1.0 Version Code Generation Branch | [1.0 Version GPT](https://github.com/RoboTwin-Platform/RoboTwin/tree/gpt) |
-| Early Version Branch | [Early Version](https://github.com/RoboTwin-Platform/RoboTwin/tree/early_version) |
-| 第十九届“挑战杯”人工智能专项赛分支 | Coming Soon... |
-| CVPR 2025 Challenge Round 1 Branch | [CVPR-Challenge-2025-Round1](https://github.com/RoboTwin-Platform/RoboTwin/tree/CVPR-Challenge-2025-Round1) |
-| CVPR 2025 Challenge Round 2 Branch | [CVPR-Challenge-2025-Round2](https://github.com/RoboTwin-Platform/RoboTwin/tree/CVPR-Challenge-2025-Round2) |
+## 1. ✅ Vulkan Setup
 
+* Please verify that the command `vulkaninfo` can correctly list **all four L40 GPUs**.
 
+* If `vulkaninfo` fails to display the GPUs, refer to this GitHub issue for troubleshooting:
+  👉 [NVIDIA Container Toolkit Issue #16](https://github.com/NVIDIA/nvidia-container-toolkit/issues/16)
 
-# 🐣 Update
-* **2025/06/21**, We release RoboTwin 2.0 !
-* **2025/04/11**, RoboTwin is seclected as <i>CVPR Highlight paper</i>!
-* **2025/02/27**, RoboTwin is accepted to <i>CVPR 2025</i> ! 
-* **2024/09/30**, RoboTwin (Early Version) received <i>the Best Paper Award  at the ECCV Workshop</i>!
-* **2024/09/20**, Officially released RoboTwin.
+* The Vulkan **ICD (Installable Client Driver)** configuration file should look like this:
 
-<!-- **Applications and extensions of RoboTwin from the community:**
+  ```json
+  {
+    "file_format_version": "1.0.0",
+    "ICD": {
+      "library_path": "libGLX_nvidia.so.0",
+      "api_version": "1.3.277"
+    }
+  }
+  ```
 
-[TODO]
+## 2. 🎥 Installing FFmpeg in Docker
 
-[[arXiv 2411.18369](https://arxiv.org/abs/2411.18369)], <i>G3Flow: Generative 3D Semantic Flow for Pose-aware and Generalizable Object Manipulation</i>, where 5 RoboTwin tasks are selected for benchmarking. -->
+Docker images typically **do not include `ffmpeg`** by default. To enable video/audio processing features, follow these steps:
 
+### Step-by-Step:
+
+1. **Install `libvpx7` first**
+   Because our cluster uses the `amd64` CPU architecture, you must manually install `libvpx7` before installing `ffmpeg`.
+
+   A pre-downloaded `.deb` package is located at:
+
+   ```
+   /data/sea_disk0/cuihz/code/libvpx7_1.12.0-1+deb12u4_amd64.deb
+   ```
+
+   Install it with:
+
+   ```bash
+   sudo apt install /data/sea_disk0/cuihz/code/libvpx7_1.12.0-1+deb12u4_amd64.deb
+   ```
+
+2. **Then install FFmpeg**:
+
+   ```bash
+   sudo apt update
+   sudo apt install ffmpeg
+   ```
+
+## 3. 🔧 Required for Bash Script Compatibility: `gettext`
+
+Some of our bash scripts rely on commands such as `envsubst`, which are **not available in minimal Docker images** by default. These tools are provided by the `gettext` package.
+
+To ensure full compatibility, run:
+
+```bash
+sudo apt install gettext
+```
+
+Without this step, some scripts may failed
+---
 # 🛠️ Installation
 
 See [RoboTwin 2.0 Document (Usage - Install & Download)](https://robotwin-platform.github.io/doc/usage/robotwin-install.html) for installation instructions. It takes about 20 minutes for installation.
