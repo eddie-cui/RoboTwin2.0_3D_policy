@@ -478,7 +478,7 @@ class Base_Task(gym.Env):
             for camera_name in depth.keys():
                 pkl_dic["observation"][camera_name].update(depth[camera_name])
         # endpose
-        if self.data_type.get("endpose", False):
+        # if self.data_type.get("endpose", False):
 
             def trans_endpose_quat2rpy(endpose, gripper_val):
                 rpy = t3d.euler.quat2euler(endpose[-4:])
