@@ -520,7 +520,7 @@ class Base_Task(gym.Env):
                 right_endpose["gripper"],
             ])
         # qpos
-        if self.data_type.get("qpos", False):
+        # if self.data_type.get("qpos", False):
 
             left_jointstate = self.robot.get_left_arm_jointState()
             right_jointstate = self.robot.get_right_arm_jointState()
@@ -531,7 +531,7 @@ class Base_Task(gym.Env):
             pkl_dic["joint_action"]["right_gripper"] = right_jointstate[-1]
             pkl_dic["joint_action"]["vector"] = np.array(left_jointstate + right_jointstate)
         # pointcloud
-        if self.data_type.get("pointcloud", False):
+        # if self.data_type.get("pointcloud", False):
             pkl_dic["pointcloud"] = self.cameras.get_pcd(self.data_type.get("conbine", False))
 
         self.now_obs = deepcopy(pkl_dic)
