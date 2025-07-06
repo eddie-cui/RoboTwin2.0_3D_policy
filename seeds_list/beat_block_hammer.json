@@ -1,0 +1,41 @@
+{
+  "200000": {
+    "seeds": [
+      200000
+    ],
+    "episode_info": {
+      "200000": [
+        {
+          "{A}": "020_hammer/base0",
+          "{a}": "right"
+        }
+      ]
+    }
+  },
+  "0": {
+    "seeds": [
+      0
+    ],
+    "episode_info": {
+      "0": [
+        {
+          "{A}": "020_hammer/base0",
+          "{a}": "left"
+        }
+      ]
+    }
+  },
+  "1": {
+    "seeds": [
+      1
+    ],
+    "episode_info": {
+      "1": [
+        {
+          "{A}": "020_hammer/base0",
+          "{a}": "right"
+        }
+      ]
+    }
+  }
+}

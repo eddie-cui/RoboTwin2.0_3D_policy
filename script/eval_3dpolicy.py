@@ -18,6 +18,7 @@ from datetime import datetime
 import importlib
 import argparse
 import pdb
+import json
 
 from generate_episode_instructions import *
 
@@ -111,12 +112,13 @@ class Env:
         print("\033[94mEmbodiment Config:\033[0m " + self.embodiment_name)
         print("\n==================================")
         self.task=self.class_decorator(self.args["task_name"])
-        self.st_seed = 100000 * (1 + seed)
+        # self.st_seed = 100000 * (1 + seed)
+        self.st_seed = seed
         self.task_num = task_num
         self.clear_cache_freq=self.args['clear_cache_freq']
         self.args["eval_mode"] = True
         self.instruction_type = instruction_type
-        return self.Check_seed(self.task_num,self.clear_cache_freq)
+        return self.find_seed(task_num)
 
 
 
@@ -131,14 +133,154 @@ class Env:
         print(results)
         instruction = np.random.choice(results[0][self.instruction_type])
         self.task.set_instruction(instruction=instruction)
+        self.eval_video_log = True
+        self.video_size = str(self.args['head_camera_w']) + 'x' + str(self.args['head_camera_h'])
+        self.save_dir = "policy" + str(self.args['task_name'])  + '/' + 'seed' + str(seed)
+        if self.eval_video_log:
+            time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.save_dir = Path('eval_video') / self.save_dir
+            self.save_dir.mkdir(parents=True, exist_ok=True)
+            log_file = open(f'{self.save_dir}/{time_str}_ffmpeg_log.txt', 'w')
+            
+            self.ffmpeg = subprocess.Popen([
+            'ffmpeg', '-y',
+            '-f', 'rawvideo',
+            '-pixel_format', 'rgb24',
+            '-video_size', self.video_size,
+            '-framerate', '10',
+            '-i', '-',
+            '-pix_fmt', 'yuv420p',
+            '-vcodec', 'libx264',
+            '-preset', 'veryfast',
+            '-tune', 'zerolatency',
+            '-g', '15',
+            '-threads', '0',
+            f'{self.save_dir}/{time_str}.mp4'
+        ], stdin=subprocess.PIPE, stdout=log_file, stderr=log_file)
         return instruction
-    def Check_seed(self,test_num, clear_cache_freq):
+    def save_seed(self, seedlist, episode_info_list=None, st_seed=None):
+        if st_seed is None:
+            st_seed = self.st_seed
+        st_seed_key = str(st_seed)
+        
+        save_path = f'./seeds_list'
+        file_path = os.path.join(save_path, f'{self.args["task_name"]}.json')
+        
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        
+        new_seeds = set(seedlist)
+        
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
+                
+                if st_seed_key in data:
+                    existing_seeds = set(data[st_seed_key]["seeds"])
+                    all_seeds = sorted(list(existing_seeds.union(new_seeds)))
+                    data[st_seed_key]["seeds"] = all_seeds
+                    
+                    if episode_info_list:
+                        if "episode_info" not in data[st_seed_key]:
+                            data[st_seed_key]["episode_info"] = {}
+                        
+                        for i, seed in enumerate(seedlist):
+                            data[st_seed_key]["episode_info"][str(seed)] = episode_info_list[i]
+                else:
+                    data[st_seed_key] = {"seeds": sorted(list(new_seeds))}
+                    if episode_info_list:
+                        data[st_seed_key]["episode_info"] = {}
+                        for i, seed in enumerate(seedlist):
+                            data[st_seed_key]["episode_info"][str(seed)] = episode_info_list[i]
+            except (json.JSONDecodeError, FileNotFoundError):
+                data = {
+                    st_seed_key: {
+                        "seeds": sorted(list(new_seeds)),
+                        "episode_info": {}
+                    }
+                }
+                if episode_info_list:
+                    for i, seed in enumerate(seedlist):
+                        data[st_seed_key]["episode_info"][str(seed)] = episode_info_list[i]
+        else:
+            data = {
+                st_seed_key: {
+                    "seeds": sorted(list(new_seeds)),
+                    "episode_info": {}
+                }
+            }
+            if episode_info_list:
+                for i, seed in enumerate(seedlist):
+                    data[st_seed_key]["episode_info"][str(seed)] = episode_info_list[i]
+        
+        with open(file_path, 'w') as f:
+            json.dump(data, f, indent=2)
+    def find_seed(self, task_num):
+        save_path = f'./seeds_list'
+        file_path = os.path.join(save_path, f'{self.args["task_name"]}.json')
+        st_seed_key = str(self.st_seed)
+        existing_seeds = []
+        existing_episode_info = []
+        if os.path.exists(file_path):
+            try:
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
+                # 修正这里 - 正确访问嵌套字典
+                if st_seed_key in data and "seeds" in data[st_seed_key]:
+                    existing_seeds = data[st_seed_key]["seeds"]
+                    # 同时获取已有的episode_info
+                    if "episode_info" in data[st_seed_key]:
+                        existing_episode_info = data[st_seed_key]["episode_info"]
+            except (json.JSONDecodeError, FileNotFoundError):
+                existing_seeds = []
+        
+        valid_seeds = existing_seeds
+        
+        if len(valid_seeds) >= task_num:
+            selected_seeds = valid_seeds[:task_num]
+            id_list = list(range(task_num))
+            
+            # 为选中的种子准备episode_info列表
+            episode_info_list = []
+            for seed in selected_seeds:
+                seed_str = str(seed)
+                if seed_str in existing_episode_info:
+                    episode_info_list.append(existing_episode_info[seed_str])
+                else:
+                    episode_info_list.append([])
+            
+            print(f"Found {len(selected_seeds)} valid seeds in group {st_seed_key}")
+            return selected_seeds, id_list, episode_info_list
+    
+        print(f"Insufficient seeds in group {st_seed_key} ({len(valid_seeds)}/{task_num}), starting to find new seeds...")
+        
+        needed_seeds = task_num - len(valid_seeds)
+        start_seed = self.st_seed
+        if valid_seeds:
+            start_seed = max(valid_seeds) + 1
+        
+        new_seeds, new_ids, new_episode_info_list = self.Check_seed(needed_seeds, start_seed)
+        
+        final_seeds = valid_seeds + new_seeds
+        final_seeds = final_seeds[:task_num]
+        final_ids = list(range(len(final_seeds)))
+        
+        existing_episode_info = [[] for _ in range(len(valid_seeds))]
+        final_episode_info_list = existing_episode_info + new_episode_info_list
+        final_episode_info_list = final_episode_info_list[:task_num]
+        
+        self.save_seed(new_seeds,new_episode_info_list)
+        
+        print(f"Total found {len(final_seeds)} valid seeds in group {st_seed_key}")
+        return final_seeds, final_ids, final_episode_info_list
+    def Check_seed(self,test_num, start_seed):
         expert_check=True
         print("Task name: ", self.args["task_name"])
         suc_seed_list=[]
         now_id_list = []
         succ_tnt=0
-        now_seed=self.st_seed
+        now_seed=start_seed
         now_id = 0
         self.task.cus=0
         self.task.test_num = 0
@@ -158,6 +300,13 @@ class Env:
                     now_seed += 1
                     episode_info_list = [episode_info["info"]]
                     episode_info_list_total.append(episode_info_list)
+                except UnStableError as e:
+                    print(" -------------")
+                    print("Error: ", e)
+                    print(" -------------")
+                    self.task.close_env()
+                    now_seed += 1
+                    self.args["render_freq"] = render_freq
                 except Exception as e:
                     stack_trace = traceback.format_exc()
                     print(' -------------')
@@ -181,6 +330,8 @@ class Env:
         # actions=np.array(actions)
         # self.task.apply_action(actions)
         # actions=action
+        observation = self.get_observation()
+        self.ffmpeg.stdin.write(observation['observation']['head_camera']['rgb'].tobytes())
         for action in actions:
             self.task.take_action(action)
         self.step+=actions.shape[0]
@@ -197,6 +348,10 @@ class Env:
             return "run"
     def Close_env(self):
         self.task.close_env(clear_cache=((self.succ_seed + 1) % self.clear_cache_freq == 0))
+        if self.eval_video_log:
+            self.ffmpeg.stdin.close()
+            self.ffmpeg.wait()
+            del self.ffmpeg
         if self.task.render_freq:
             self.task.viewer.close()
         print ('Env Closed!')

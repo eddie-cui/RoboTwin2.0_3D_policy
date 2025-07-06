@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from datetime import datetime
 from PIL import Image
-
+import h5py
 # Import environment class
 sys.path.append("./")
 from script.eval_3dpolicy import Env
@@ -30,11 +30,11 @@ def save_observation_images(observation, save_dir, step):
             img_array = camera_data['head_camera']['rgb']
             
             # Ensure data is uint8 type
-            if img_array.dtype != np.uint8:
-                if img_array.max() <= 1.0:
-                    img_array = (img_array * 255).astype(np.uint8)
-                else:
-                    img_array = img_array.astype(np.uint8)
+            # if img_array.dtype != np.uint8:
+            #     if img_array.max() <= 1.0:
+            #         img_array = (img_array * 255).astype(np.uint8)
+            #     else:
+            #         img_array = img_array.astype(np.uint8)
             
             # Save as PNG
             img = Image.fromarray(img_array)
@@ -49,13 +49,17 @@ def generate_random_action(action_dim=6):
 
 def main():
     # Test parameters
-    task_name = "adjust_bottle"  # Task name
+    task_name = "beat_block_hammer"  # Task name
     task_config = "demo_clean"  # Task configuration
     head_camera = "D435"  # Camera type
-    seed = 0  # Starting seed
-    num_tasks = 3  # Number of tasks to test
+    seed = 1  # Starting seed
+    num_tasks = 1  # Number of tasks to test
     instruction_type = "unseen"  # Instruction type
-    
+    path="/data/sea_disk0/cuihz/code/RoboTwin2.0/RoboTwin/data/beat_block_hammer/demo_clean/data/episode0.hdf5"
+    with h5py.File(path, 'r') as f:
+        actions=f["joint_action"]['vector'][:]
+        obs=f["endpose"][:]
+        print(actions)
     # Create save directory
     save_dir = create_image_dir(task_name)
     print(f"Test results will be saved to: {save_dir}")
@@ -85,32 +89,37 @@ def main():
         
         # Run random action test for each valid seed
         for i, (seed, task_id, episode_info_list) in enumerate(zip(seed_list, id_list, episode_info_list_total)):
-            print(f"\n=== Executing task {i+1}/{len(seed_list)}, seed: {seed} ===")
+            # print(f"\n=== Executing task {i+1}/{len(seed_list)}, seed: {seed} ===")
             
             # Initialize task environment
             inst=env_manager.Init_task_env(seed, task_id, episode_info_list, len(seed_list))
-            print(f"Task environment initialized successfully: {inst}")
+            # print(f"Task environment initialized successfully: {inst}")
             # Run random action sequence
-            max_steps = 1000
+            max_steps = 200
             test_stats = {"success": False, "steps_taken": 0}
             
             for step in range(max_steps):
+                # print(actions)
+                action=actions[step+1]
                 # Get current observation
                 observation = env_manager.get_observation()
-                
+                print("endpose_env:", observation['endpose'][10:13])
+                print("endpose_data:",obs[step][10:13])
                 # Save observation images
                 task_save_dir = save_dir / f"task_{i+1}_seed_{seed}"
                 task_save_dir.mkdir(exist_ok=True)
                 save_observation_images(observation, task_save_dir, step)
-                
+                action = [action]  # Wrap action in a list to match expected input format
+                print(actions[step])
+                action = np.array(action)  # Ensure action is 2D array
                 # Generate random action sequence (here we generate one action at a time)
                 # Note: Action dimension may need adjustment based on actual requirements
-                action_dim = 14  # Adjust to appropriate dimension for your task (6 joints + 1 gripper)
-                actions = np.array([generate_random_action(action_dim)])
-                
+                # action_dim = 14  # Adjust to appropriate dimension for your task (6 joints + 1 gripper)
+                # actions = np.array([generate_random_action(action_dim)])
+                # action = [action]
                 # Execute action
                 # print(f"Step {step}: Execute random action {actions[0]}")
-                status = env_manager.Take_action(actions)
+                status = env_manager.Take_action(action)
                 print(f"Status: {status}")
                 
                 # Check if completed
