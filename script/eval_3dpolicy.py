@@ -293,13 +293,7 @@ class Env:
                     self.task.setup_demo(now_ep_num=now_id, seed = now_seed, is_test = True, ** self.args)
                     episode_info=self.task.play_once()
                     self.task.close()
-                    suc_seed_list.append(now_seed)
-                    now_id_list.append(now_id)
-                    now_id += 1
-                    succ_tnt += 1
-                    now_seed += 1
-                    episode_info_list = [episode_info["info"]]
-                    episode_info_list_total.append(episode_info_list)
+                    
                 except UnStableError as e:
                     print(" -------------")
                     print("Error: ", e)
@@ -317,6 +311,19 @@ class Env:
                     self.args['render_freq'] = render_freq
                     print('error occurs !')
                     continue
+            if (not expert_check) or (self.task.plan_success and self.task.check_success()):
+                suc_seed_list.append(now_seed)
+                now_id_list.append(now_id)
+                now_id += 1
+                succ_tnt += 1
+                now_seed += 1
+                episode_info_list = [episode_info["info"]]
+                episode_info_list_total.append(episode_info_list)
+            else:
+                now_seed += 1
+                self.args["render_freq"] = render_freq
+                continue
+
             self.args['render_freq'] = render_freq
         return suc_seed_list, now_id_list, episode_info_list_total
     def Detect_env_state(self):
