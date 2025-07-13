@@ -1,3 +1,5 @@
+torch==2.4.1
+torchvision
 transforms3d==0.4.2
 sapien==3.0.0b1
 scipy==1.10.1
@@ -21,3 +23,4 @@ imageio
 termcolor
 av
 matplotlib
+ffmpeg

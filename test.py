@@ -52,18 +52,22 @@ def main():
     task_name = "beat_block_hammer"  # Task name
     task_config = "demo_clean"  # Task configuration
     head_camera = "D435"  # Camera type
-    seed = 1  # Starting seed
+    seed = 0  # Starting seed
     num_tasks = 1  # Number of tasks to test
     instruction_type = "unseen"  # Instruction type
-    path="/data/sea_disk0/cuihz/code/RoboTwin2.0/RoboTwin/data/beat_block_hammer/demo_clean/data/episode0.hdf5"
+    path="/home/sealab/RoboTwin2.0/RoboTwin/data/beat_block_hammer/demo_clean/data/episode0.hdf5"
     with h5py.File(path, 'r') as f:
         actions=f["joint_action"]['vector'][:]
-        obs=f["endpose"][:]
-        print(actions)
+        obs_le=f["endpose"]['left_endpose'][:]
+        obs_re=f["endpose"]['right_endpose'][:]
+        obs_lg=f["endpose"]['left_gripper'][:]
+        obs_rg=f["endpose"]['right_gripper'][:]
+        # obs = np.concatenate((obs_le, obs_lg,obs_re, obs_rg), axis=1)
+        # print(actions)
     # Create save directory
-    save_dir = create_image_dir(task_name)
-    print(f"Test results will be saved to: {save_dir}")
-    
+    # save_dir = create_image_dir(task_name)
+    # print(f"Test results will be saved to: {save_dir}")
+    # print(obs)
     # Create environment
     print("\n=== Initializing Environment ===")
     env_manager = Env()
@@ -92,35 +96,33 @@ def main():
             # print(f"\n=== Executing task {i+1}/{len(seed_list)}, seed: {seed} ===")
             
             # Initialize task environment
+            # print(episode_info_list)
             inst=env_manager.Init_task_env(seed, task_id, episode_info_list, len(seed_list))
             # print(f"Task environment initialized successfully: {inst}")
             # Run random action sequence
-            max_steps = 200
+            max_steps = len(actions)-1
             test_stats = {"success": False, "steps_taken": 0}
             
             for step in range(max_steps):
                 # print(actions)
-                action=actions[step+1]
+                # action=actions[step]
+                obs=np.hstack((obs_le[step+1], obs_lg[step+1], obs_re[step+1], obs_rg[step+1]))
+                # obs=np.array(obs)
+                action = obs
                 # Get current observation
                 observation = env_manager.get_observation()
-                print("endpose_env:", observation['endpose'][10:13])
-                print("endpose_data:",obs[step][10:13])
+                # print("endpose_env:", observation['endpose'][10:13])
+                # print("endpose_data:",obs[step][10:13])
                 # Save observation images
-                task_save_dir = save_dir / f"task_{i+1}_seed_{seed}"
-                task_save_dir.mkdir(exist_ok=True)
-                save_observation_images(observation, task_save_dir, step)
+                # task_save_dir = save_dir / f"task_{i+1}_seed_{seed}"
+                # task_save_dir.mkdir(exist_ok=True)
+                # save_observation_images(observation, task_save_dir, step)
                 action = [action]  # Wrap action in a list to match expected input format
-                print(actions[step])
+                # print(action)
+                # print(actions[step])
                 action = np.array(action)  # Ensure action is 2D array
-                # Generate random action sequence (here we generate one action at a time)
-                # Note: Action dimension may need adjustment based on actual requirements
-                # action_dim = 14  # Adjust to appropriate dimension for your task (6 joints + 1 gripper)
-                # actions = np.array([generate_random_action(action_dim)])
-                # action = [action]
-                # Execute action
-                # print(f"Step {step}: Execute random action {actions[0]}")
-                status = env_manager.Take_action(action)
-                print(f"Status: {status}")
+                status = env_manager.Take_action(action,action_types='ee')
+                # print(f"Status: {status}")
                 
                 # Check if completed
                 if status != "run":
@@ -134,12 +136,12 @@ def main():
                 test_stats["steps_taken"] = max_steps
             
             # Save test statistics for this run
-            result_file = task_save_dir / "result.txt"
-            with open(result_file, "w") as f:
-                f.write(f"Task: {task_name}\n")
-                f.write(f"Seed: {seed}\n") 
-                f.write(f"Success: {test_stats['success']}\n")
-                f.write(f"Steps: {test_stats['steps_taken']}\n")
+            # result_file = task_save_dir / "result.txt"
+            # with open(result_file, "w") as f:
+            #     f.write(f"Task: {task_name}\n")
+            #     f.write(f"Seed: {seed}\n") 
+            #     f.write(f"Success: {test_stats['success']}\n")
+            #     f.write(f"Steps: {test_stats['steps_taken']}\n")
             
             print(f"Task {i+1} result: {'Success' if test_stats['success'] else 'Failed'}, Duration: {test_stats['steps_taken']} steps")
         

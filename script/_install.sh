@@ -1,5 +1,5 @@
 echo "Installing the necessary packages ..."
-pip install -r script/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install -r script/requirements.txt
 
 echo "Installing pytorch3d ..."
 # cd third_party/pytorch3d_simplified

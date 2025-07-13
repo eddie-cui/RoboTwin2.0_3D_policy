@@ -63,6 +63,7 @@ class Env:
     def dual_arm(self):
         return self.task.get_dual_arm()
     def Create_env(self,task_name,head_camera_type,seed,task_num,instruction_type,task_config):
+        self.time_str= datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
         with open(f'./task_config/{task_config}.yml', 'r', encoding='utf-8') as f:
             self.args = yaml.load(f.read(), Loader=yaml.FullLoader)
         self.args['task_name'] = task_name
@@ -118,6 +119,16 @@ class Env:
         self.clear_cache_freq=self.args['clear_cache_freq']
         self.args["eval_mode"] = True
         self.instruction_type = instruction_type
+        self.folder_path="policy" + str(self.args['task_name'])  + '/' + 'time' + self.time_str
+        self.folder_path = Path('eval_video') / self.folder_path
+        if not os.path.exists(self.folder_path):
+            os.makedirs(self.folder_path)
+        self.success_path= os.path.join(self.folder_path, "success")
+        if not os.path.exists(self.success_path):
+            os.makedirs(self.success_path)
+        self.fail_path= os.path.join(self.folder_path, "fail")
+        if not os.path.exists(self.fail_path):
+            os.makedirs(self.fail_path)
         return self.find_seed(task_num)
 
 
@@ -129,19 +140,19 @@ class Env:
         self.step=0
         self.succ_seed=seed
         self.task.setup_demo(now_ep_num=id, seed = seed, is_test = True, ** self.args)
-        results = generate_episode_descriptions(self.args["task_name"], episode_info_list, test_num)
-        print(results)
+        results = generate_episode_descriptions(self.args["task_name"], episode_info_list, 1)
+        # print(results)
         instruction = np.random.choice(results[0][self.instruction_type])
         self.task.set_instruction(instruction=instruction)
         self.eval_video_log = True
+        # time_str = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
         self.video_size = str(self.args['head_camera_w']) + 'x' + str(self.args['head_camera_h'])
-        self.save_dir = "policy" + str(self.args['task_name'])  + '/' + 'seed' + str(seed)
+        self.save_dir = "policy" + str(self.args['task_name'])  + '/' + 'time' + self.time_str
         if self.eval_video_log:
-            time_str = datetime.now().strftime("%Y%m%d_%H%M%S")
             self.save_dir = Path('eval_video') / self.save_dir
             self.save_dir.mkdir(parents=True, exist_ok=True)
-            log_file = open(f'{self.save_dir}/{time_str}_ffmpeg_log.txt', 'w')
-            
+            log_file = open(f'{self.save_dir}/{self.time_str}_ffmpeg_log.txt', 'w')
+            self.file_path= os.path.join(self.save_dir, f'{seed}.mp4')
             self.ffmpeg = subprocess.Popen([
             'ffmpeg', '-y',
             '-f', 'rawvideo',
@@ -155,7 +166,7 @@ class Env:
             '-tune', 'zerolatency',
             '-g', '15',
             '-threads', '0',
-            f'{self.save_dir}/{time_str}.mp4'
+            f'{self.save_dir}/{seed}.mp4'
         ], stdin=subprocess.PIPE, stdout=log_file, stderr=log_file)
         return instruction
     def save_seed(self, seedlist, episode_info_list=None, st_seed=None):
@@ -265,8 +276,8 @@ class Env:
         final_seeds = valid_seeds + new_seeds
         final_seeds = final_seeds[:task_num]
         final_ids = list(range(len(final_seeds)))
-        
-        existing_episode_info = [[] for _ in range(len(valid_seeds))]
+
+        existing_episode_info = [existing_episode_info[i] for i in existing_episode_info]
         final_episode_info_list = existing_episode_info + new_episode_info_list
         final_episode_info_list = final_episode_info_list[:task_num]
         
@@ -327,38 +338,46 @@ class Env:
             self.args['render_freq'] = render_freq
         return suc_seed_list, now_id_list, episode_info_list_total
     def Detect_env_state(self):
-        if self.step>self.task.step_lim:
+        if self.step>=self.task.step_lim:
             self.env_state=2
         if self.task.eval_success:
             self.env_state=1
-    def Take_action(self,actions):
+    def Take_action(self,actions,action_types='qpos'):
         # actions=[]
         # actions.append(action)
         # actions=np.array(actions)
         # self.task.apply_action(actions)
         # actions=action
-        observation = self.get_observation()
-        self.ffmpeg.stdin.write(observation['observation']['head_camera']['rgb'].tobytes())
         for action in actions:
-            self.task.take_action(action)
+            observation = self.get_observation()
+            self.ffmpeg.stdin.write(observation['observation']['head_camera']['rgb'].tobytes())
+            self.task.take_action(action,action_type=action_types)
         self.step+=actions.shape[0]
         self.Detect_env_state()
         if self.env_state==1:
             print('Task Success!')
-            self.Close_env()
+            self.Close_env(success=True)
             return "success"
         elif self.env_state==2:
             print('Task Failed!')
-            self.Close_env()
+            self.Close_env(success=False)
             return "fail"
         else:
             return "run"
-    def Close_env(self):
+    def Close_env(self,success=False):
+        observation = self.get_observation()
+        self.ffmpeg.stdin.write(observation['observation']['head_camera']['rgb'].tobytes())
         self.task.close_env(clear_cache=((self.succ_seed + 1) % self.clear_cache_freq == 0))
         if self.eval_video_log:
             self.ffmpeg.stdin.close()
             self.ffmpeg.wait()
             del self.ffmpeg
+        if success:
+            import shutil
+            shutil.copy(self.file_path, os.path.join(self.success_path, f'{self.succ_seed}.mp4'))
+        else:
+            import shutil
+            shutil.copy(self.file_path, os.path.join(self.fail_path, f'{self.succ_seed}.mp4'))
         if self.task.render_freq:
             self.task.viewer.close()
         print ('Env Closed!')

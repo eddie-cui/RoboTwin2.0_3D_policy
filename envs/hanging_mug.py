@@ -75,7 +75,7 @@ class hanging_mug(Base_Task):
                              dis=-0.05,
                              pre_dis_axis='fp'))
         self.move(self.move_by_displacement(arm_tag=hang_arm_tag, z=0.1, move_axis='arm'))
-        self.info["object"] = {"{A}": f"039_mug/base{self.mug_id}", "{B}": "040_rack/base0"}
+        self.info["info"] = {"{A}": f"039_mug/base{self.mug_id}", "{B}": "040_rack/base0"}
         return self.info
 
     def check_success(self):

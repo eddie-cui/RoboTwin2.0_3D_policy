@@ -39,16 +39,22 @@ class BaseViewer:
         self.scene.set_timestep(1 / 250)
 
         # initialize viewer with camera position and orientation
+        self.viewer = None
+        self.reset()
+    
+    def open_viewer(self):
+        if self.viewer is not None and not self.viewer.closed:
+            return 
         self.viewer = self.scene.create_viewer()
         self.viewer.set_scene(self.scene)
         self.viewer.set_camera_pose(pose=sapien.Pose(
             [-0.0096987, -0.19846, 0.0955636],
             [0.71241, -0.118063, 0.123576, 0.680634],
         ))
-        self.reset()
 
     def reset(self):
         self.scene.clear()
+        self.open_viewer()
 
         # ground
         self.scene.add_ground(0)
@@ -122,7 +128,7 @@ class BaseViewer:
 
     def update_render(self):
         global render_pause
-        if not render_pause:
+        if not render_pause and not self.viewer.closed:
             self.scene.update_render()
             self.viewer.render()
 
@@ -144,12 +150,12 @@ class BaseViewer:
         ...
 
 
-class GLBViewer(BaseViewer):
+class ObjectViewer(BaseViewer):
     EMPTY_CONFIG = {
         "center": [],   # Center Point
         "extents": [],  # Bounding Box Extents
         "scale": [1.0, 1.0, 1.0],  # Scale
-        "transform_matrix": np.eye(4),  # Model to Axis Rotation Matrix, fixed as Identity Matrix
+        "transform_matrix": np.eye(4).tolist(),  # Model to Axis Rotation Matrix, fixed as Identity Matrix
 
         # Target Point Matrix (multiple), special points that can be obtained during planning (e.g., cup handle)
         "target_pose": [],
@@ -178,7 +184,6 @@ class GLBViewer(BaseViewer):
 
     def __init__(self):
         super().__init__()
-        self.init_parser()
 
     def main(self, pose, modelname, modelid, inherit_config: dict = None):
         global render_pause
@@ -203,24 +208,37 @@ class GLBViewer(BaseViewer):
 
     def __del__(self):
         self.active = False
-        self.render.join()
+        if hasattr(self, 'render'):
+            self.render.join()
         self.scene.clear()
-        self.viewer.close()
+        if self.viewer is not None and not self.viewer.closed:
+            self.viewer.close()
 
     def load_actor(self, pose, inherit_config=None, inherit_type: Literal['force', 'advice'] = 'advice'):
         modeldir = Path("assets/objects") / self.modelname
         modelid = '' if self.modelid is None else self.modelid
         self.config_path = modeldir / f"model_data{modelid}.json"
 
-        collision, visual = modeldir / "collision" / f"base{modelid}.glb", modeldir / "visual" / f"base{modelid}.glb"
+        # try to load as glb
+        collision = modeldir / "collision" / f"base{modelid}.glb"
+        visual = modeldir / "visual" / f"base{modelid}.glb"
         if not collision.exists() or not visual.exists():
-            logging.error(f"Model files not found in {modeldir}({modelid}): "
-                          f"collision {collision.exists()}, visual {visual.exists()}")
-            return False
+            # try to load as obj
+            collision = modeldir / "collision" / f"textured{modelid}.obj"
+            visual = modeldir / "visual" / f"textured{modelid}.obj"
+            
+            if not collision.exists() or not visual.exists():
+                logging.error(
+                    f"Model files not found in {modeldir}({modelid}): "
+                    f"collision {collision.exists()}, visual {visual.exists()}"
+                )
+                return False
 
         if self.config_path.exists():
             try:
                 actor_config = json.load(open(self.config_path, "r", encoding="utf-8"))
+                if len(actor_config['orientation_point']) > 1:
+                    actor_config['orientation_point'] = [actor_config['orientation_point']]
             except json.JSONDecodeError:
                 logging.warning(f"Invalid JSON in {self.config_path}, using empty config.")
                 actor_config = None
@@ -251,7 +269,8 @@ class GLBViewer(BaseViewer):
 
     def get_shape_data(self, modelpath: Path):
         with open(modelpath, "rb") as file_obj:
-            mesh: trimesh.Geometry = trimesh.load(file_obj, file_type="glb")
+            mesh: trimesh.Geometry = trimesh.load(
+                file_obj, file_type=modelpath.suffix.strip("."))
 
         box: trimesh.primitives.Box = mesh.bounding_box_oriented
         return {
@@ -346,6 +365,18 @@ class GLBViewer(BaseViewer):
         try:
             while not self.viewer.closed:
                 cmd = input("Input command: ")
+                if self.viewer.closed:
+                    logging.warning("Viewer has been closed manually.")
+                    cmd = input("Please choose to reopen, exit with save or exit without save: (r/s/e) ")
+                    cmd = cmd.strip().lower()
+                    if cmd in ['r', 'reopen']:
+                        self.open_viewer()
+                    if cmd in ['s', 'save']:
+                        self.update_config(True)
+                        break
+                    if cmd in ['e', 'exit']:
+                        break
+
                 modified += 1
                 if cmd == "save":
                     self.update_config(True)
@@ -565,7 +596,7 @@ class URDFViewer(BaseViewer):
         self.active = True
 
         def render():
-            while self.active:
+            while self.active and not self.viewer.closed:
                 self.update_render()
             self.clear_scene()
 
@@ -577,9 +608,11 @@ class URDFViewer(BaseViewer):
 
     def __del__(self):
         self.active = False
-        self.render.join()
+        if hasattr(self, 'render'):
+            self.render.join()
         self.scene.clear()
-        self.viewer.close()
+        if self.viewer is not None and not self.viewer.closed:
+            self.viewer.close()
 
     def load_actor(self, pose, inherit_config=None, inherit_type: Literal['force', 'advice'] = 'advice'):
         modeldir = Path("assets/objects") / self.modelname / str(self.modelid)
@@ -753,6 +786,18 @@ class URDFViewer(BaseViewer):
         try:
             while not self.viewer.closed:
                 cmd = input("Input command: ")
+                if self.viewer.closed:
+                    logging.warning("Viewer has been closed manually.")
+                    cmd = input("Please choose to reopen, exit with save or exit without save: (r/s/e) ")
+                    cmd = cmd.strip().lower()
+                    if cmd in ['r', 'reopen']:
+                        self.open_viewer()
+                    if cmd in ['s', 'save']:
+                        self.update_config(True)
+                        break
+                    if cmd in ['e', 'exit']:
+                        break
+                
                 modified += 1
                 if cmd == "save":
                     self.update_config(True)
@@ -983,42 +1028,43 @@ class URDFViewer(BaseViewer):
         except KeyboardInterrupt:
             pass
 
-
-def glb_main(model_name: str, start: int = 0):
+def auto_loader(model_name: str):
     model_dir = Path("./assets/objects/") / model_name
-    visual_list = [int(i.name.lstrip("base").rstrip(".glb")) for i in list((model_dir / "visual").iterdir())]
-    collision_list = [int(i.name.lstrip("base").rstrip(".glb")) for i in list((model_dir / "collision").iterdir())]
-    id_list = list(set(visual_list) & set(collision_list))
-    logging.info(f"Found {len(id_list)} valid models for {model_name}: {id_list}")
+    collision = model_dir / "collision"
+    visual    = model_dir / "visual"
 
-    viewer = GLBViewer()
-    for oid in id_list:
-        if oid < start:
-            continue
-        os.environ["MODEL_NAME"] = model_name
-        os.environ["MODEL_ID"] = str(oid)
+    if not collision.exists():
+        # URDF
+        id_list = [
+            int(i.name) for i in list(model_dir.iterdir()) \
+                if i.is_dir() and i.name != 'visual'
+        ]
+        logging.info(f"<URDF> Found {len(id_list)} valid models: {id_list}")
+        return URDFViewer(), id_list, sapien.Pose([0, 0, 0], [1, 0, 0, 0])
+    else:
+        collision_list = [
+            int(re.search(r'\d+', i.name).group()) \
+                for i in list(collision.iterdir()) \
+                    if i.suffix in ['.obj', '.glb'] 
+        ]
+        visual_list = [
+            int(re.search(r'\d+', i.name).group()) \
+                for i in list(visual.iterdir()) \
+                    if i.suffix in ['.obj', '.glb'] 
+        ]
+        id_list = list(
+            set(visual_list) & set(collision_list))
+        logging.info(f"<OBJECT> Found {len(id_list)} valid models: {id_list}")
+        return ObjectViewer(), id_list, sapien.Pose([0, 0, 0], [0.707, 0.707, 0, 0])
 
-        inherit_config = None
-        while True:
-            try:
-                logging.info(f"Calibration {model_name}({oid})")
-                viewer.main(
-                    pose=sapien.Pose([0, 0, 0], [0.707107, 0.707107, 0, 0]),
-                    modelname=model_name,
-                    modelid=oid,
-                    inherit_config=inherit_config)
-                inherit_config = viewer.actor.config
-                break
-            except KeyboardInterrupt:
-                break
 
+def main(model_name: str, start: int = 0):
+    try:
+        viewer, id_list, init_pose = auto_loader(model_name)
+    except Exception as e:
+        logging.error(f"Failed to load model {model_name}: {e}")
+        return
 
-def urdf_main(model_name: str, start: int = 0):
-    model_dir = Path('./assets/objects/') / model_name
-    id_list = [int(i.name) for i in list(model_dir.iterdir()) if i.is_dir() and i.name != 'visual']
-    logging.info(f"Found {len(id_list)} valid models for {model_name}: {id_list}")
-
-    helper = URDFViewer()
     for oid in id_list:
         if oid < start:
             continue
@@ -1027,31 +1073,21 @@ def urdf_main(model_name: str, start: int = 0):
 
         inherit_config = None
         try:
-            logging.info(f'Calibration {model_name}({oid})')
-            helper.main(
-                pose=sapien.Pose([0, 0, 0], [1, 0, 0, 0]),
+            logging.info(f'Annotating {model_name}({oid})')
+            viewer.main(
+                pose=init_pose,
                 modelname=f'{model_name}',
                 modelid=oid,
                 inherit_config=inherit_config)
-            inherit_config = helper.actor.config
+            inherit_config = viewer.actor.config
         except KeyboardInterrupt:
             break
 
 
-def auto_main(model_name: str, start: int = 0):
-    collision_path = Path("./assets/objects/") / model_name / "collision"
-    if not collision_path.exists():
-        logging.info(f"Loading URDF calibration for {model_name}")
-        urdf_main(model_name, start)
-    else:
-        logging.info(f"Loading GLB calibration for {model_name}")
-        glb_main(model_name, start)
-
-
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='[{levelname:^8}] {message}', style="{")
-    parser = argparse.ArgumentParser(description="Calibration Tool")
+    parser = argparse.ArgumentParser(description="Annotation Tool")
     parser.add_argument("model_name", type=str, help="Model Name")
     parser.add_argument("-s", "--start", type=int, default=0, help="Start ID")
     args = parser.parse_args()
-    auto_main(args.model_name, args.start)
+    main(args.model_name, args.start)
