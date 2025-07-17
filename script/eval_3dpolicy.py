@@ -113,8 +113,8 @@ class Env:
         print("\033[94mEmbodiment Config:\033[0m " + self.embodiment_name)
         print("\n==================================")
         self.task=self.class_decorator(self.args["task_name"])
-        # self.st_seed = 100000 * (1 + seed)
-        self.st_seed = seed
+        self.st_seed = 10000 * (1 + seed)
+        # self.st_seed = seed
         self.task_num = task_num
         self.clear_cache_freq=self.args['clear_cache_freq']
         self.args["eval_mode"] = True
