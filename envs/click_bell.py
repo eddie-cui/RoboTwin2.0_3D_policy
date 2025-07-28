@@ -34,6 +34,7 @@ class click_bell(Base_Task):
         )
 
         self.add_prohibit_area(self.bell, padding=0.07)
+        self.check_arm_function = self.is_left_gripper_close if self.bell.get_pose().p[0] < 0 else self.is_right_gripper_close
     
     def play_once(self):
         # Choose the arm to use: right arm if the bell is on the right side (positive x), left otherwise
@@ -70,6 +71,8 @@ class click_bell(Base_Task):
     def check_success(self):
         if self.stage_success_tag:
             return True
+        if not self.check_arm_function():
+            return False
         bell_pose = self.bell.get_contact_point(0)[:3]
         positions = self.get_gripper_actor_contact_position("050_bell")
         eps = [0.025, 0.025]

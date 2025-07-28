@@ -37,6 +37,7 @@ class click_alarmclock(Base_Task):
             is_static=True,
         )
         self.add_prohibit_area(self.alarm, padding=0.05)
+        self.check_arm_function = self.is_left_gripper_close if self.alarm.get_pose().p[0] < 0 else self.is_right_gripper_close
 
     def play_once(self):
         # Determine which arm to use based on alarm clock's position (right if positive x, left otherwise)
@@ -79,6 +80,8 @@ class click_alarmclock(Base_Task):
     def check_success(self):
         if self.stage_success_tag:
             return True
+        if not self.check_arm_function():
+            return False
         alarm_pose = self.alarm.get_contact_point(0)[:3]
         positions = self.get_gripper_actor_contact_position("046_alarm-clock")
         eps = [0.03, 0.03]
