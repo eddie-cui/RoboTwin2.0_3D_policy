@@ -480,7 +480,7 @@ class Camera:
         return pcd_array
 
     # Get Camera PointCloud
-    def get_pcd(self, is_conbine=False):
+    def get_pcd(self, is_combine=False):
 
         def _get_camera_pcd(camera, point_num=0):
             rgba = camera.get_picture_cuda("Color").torch()  # [H, W, 4]
@@ -529,31 +529,31 @@ class Camera:
             print("No head camera in static camera list, pointcloud save error!")
             return None
 
-        conbine_pcd = np.array([])
+        combine_pcd = np.array([])
         # Merge pointcloud
-        if is_conbine:
-            # conbine_pcd = np.vstack((head_pcd , left_pcd , right_pcd, front_pcd))
+        if is_combine:
+            # combine_pcd = np.vstack((head_pcd , left_pcd , right_pcd, front_pcd))
             if self.collect_wrist_camera:
-                conbine_pcd = np.vstack((
+                combine_pcd = np.vstack((
                     _get_camera_pcd(self.left_camera),
                     _get_camera_pcd(self.right_camera),
                 ))
             for camera, camera_name in zip(self.static_camera_list, self.static_camera_name):
                 if camera_name == "head_camera":
                     if self.collect_head_camera:
-                        conbine_pcd = np.vstack((conbine_pcd, _get_camera_pcd(camera)))
+                        combine_pcd = np.vstack((combine_pcd, _get_camera_pcd(camera)))
                 else:
-                    conbine_pcd = np.vstack((conbine_pcd, _get_camera_pcd(camera)))
+                    combine_pcd = np.vstack((combine_pcd, _get_camera_pcd(camera)))
         elif self.collect_head_camera:
-            conbine_pcd = _get_camera_pcd(self.static_camera_list[self.head_camera_id])
+            combine_pcd = _get_camera_pcd(self.static_camera_list[self.head_camera_id])
 
-        if conbine_pcd.shape[0] == 0:
-            return conbine_pcd
+        if combine_pcd.shape[0] == 0:
+            return combine_pcd
 
-        pcd_array, index = conbine_pcd[:, :3], np.array(range(len(conbine_pcd)))
+        pcd_array, index = combine_pcd[:, :3], np.array(range(len(combine_pcd)))
 
         if self.pcd_down_sample_num > 0:
-            pcd_array, index = fps(conbine_pcd[:, :3], self.pcd_down_sample_num)
+            pcd_array, index = fps(combine_pcd[:, :3], self.pcd_down_sample_num)
             index = index.detach().cpu().numpy()[0]
 
-        return conbine_pcd[index]
+        return combine_pcd[index]
