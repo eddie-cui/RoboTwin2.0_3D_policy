@@ -494,7 +494,7 @@ class Base_Task(gym.Env):
             pkl_dic["joint_action"]["vector"] = np.array(left_jointstate + right_jointstate)
         # pointcloud
         if self.data_type.get("pointcloud", False):
-            pkl_dic["pointcloud"] = self.cameras.get_pcd(self.data_type.get("conbine", False))
+            pkl_dic["pointcloud"] = self.cameras.get_pcd(self.data_type.get("combine", False))
 
         self.now_obs = deepcopy(pkl_dic)
         return pkl_dic
